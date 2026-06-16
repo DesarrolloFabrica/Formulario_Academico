@@ -22,7 +22,7 @@ export type EvaluationFormData = {
   classEndTime: string;
   classDate: string;
   professorName: string;
-  modality: 'Presencial' | 'Virtual' | 'Hibrida';
+  modality: '' | 'Presencial' | 'Virtual' | 'Hibrida';
   campusOrRoom: string;
   virtualClassLink: string;
   clarityRating: number;

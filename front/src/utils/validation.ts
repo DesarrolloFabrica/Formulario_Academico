@@ -21,6 +21,7 @@ export function validateStep(step: number, data: EvaluationFormData) {
     requireField('fullName', 'El nombre completo');
     requireField('email', 'El correo');
     requireField('documentNumber', 'El documento');
+    requireField('shift', 'La jornada');
     if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       errors.email = 'Ingresa un correo valido';
     }
@@ -34,6 +35,7 @@ export function validateStep(step: number, data: EvaluationFormData) {
     requireField('classEndTime', 'La hora de fin');
     requireField('classDate', 'La fecha de clase');
     requireField('professorName', 'El profesor');
+    requireField('modality', 'La modalidad');
     if (data.classStartTime && data.classEndTime && data.classStartTime >= data.classEndTime) {
       errors.classEndTime = 'La hora fin debe ser mayor a la hora inicio';
     }

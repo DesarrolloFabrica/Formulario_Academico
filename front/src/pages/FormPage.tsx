@@ -1,10 +1,10 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, LogOut, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { InputField, SelectField, TextAreaField } from '../components/Field';
+import { InputField, SearchableSelectField, SelectField, TextAreaField } from '../components/Field';
 import { ProgressSteps } from '../components/ProgressSteps';
 import { Rating } from '../components/Rating';
 import { checkEvaluationAvailability, createEvaluation, getCatalogs } from '../services/api';
-import type { CatalogOption, Catalogs, EvaluationFormData, User } from '../types/evaluation';
+import type { Catalogs, EvaluationFormData, User } from '../types/evaluation';
 import { validateStep } from '../utils/validation';
 
 const emptyForm = (user: User): EvaluationFormData => ({
@@ -22,7 +22,7 @@ const emptyForm = (user: User): EvaluationFormData => ({
   classEndTime: '',
   classDate: new Date().toISOString().slice(0, 10),
   professorName: '',
-  modality: 'Presencial',
+  modality: '',
   campusOrRoom: '',
   virtualClassLink: '',
   clarityRating: 4,
@@ -52,19 +52,6 @@ const emptyCatalogs: Catalogs = {
   shifts: []
 };
 
-function renderOptions(options: CatalogOption[], placeholder: string) {
-  return (
-    <>
-      <option value="">{placeholder}</option>
-      {options.map((option) => (
-        <option key={option.id} value={option.name}>
-          {option.name}
-        </option>
-      ))}
-    </>
-  );
-}
-
 type Props = {
   user: User;
   onLogout: () => void;
@@ -87,10 +74,6 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
       .then((data) => {
         setCatalogs(data.catalogs);
         setCatalogError('');
-        const defaultModality = data.catalogs.modalities[0]?.name;
-        if (defaultModality && ['Presencial', 'Virtual', 'Hibrida'].includes(defaultModality)) {
-          setForm((current) => ({ ...current, modality: defaultModality as EvaluationFormData['modality'] }));
-        }
       })
       .catch(() => setCatalogError('No fue posible cargar las listas de la base de datos'));
   }, []);
@@ -215,7 +198,7 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
         </header>
 
         <div>
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft">
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-soft">
             <div className="p-5 transition-all duration-300 md:p-8">
               {step === 0 && (
                 <div className="animate-[fadeIn_.25s_ease] space-y-5">
@@ -224,9 +207,14 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
                     <InputField label="Nombre completo" value={form.fullName} error={errors.fullName} onChange={(e) => update('fullName', e.target.value)} />
                     <InputField label="Correo electronico" type="email" value={form.email} error={errors.email} onChange={(e) => update('email', e.target.value)} />
                     <InputField label="Cedula/documento" value={form.documentNumber} error={errors.documentNumber} onChange={(e) => update('documentNumber', e.target.value)} />
-                    <SelectField label="Jornada" value={form.shift} onChange={(e) => update('shift', e.target.value)}>
-                      {renderOptions(catalogs.shifts, 'Selecciona una jornada')}
-                    </SelectField>
+                    <SearchableSelectField
+                      label="Jornada"
+                      value={form.shift}
+                      options={catalogs.shifts}
+                      placeholder="Buscar jornada"
+                      error={errors.shift}
+                      onChange={(value) => update('shift', value)}
+                    />
                   </div>
                 </div>
               )}
@@ -234,30 +222,60 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
               {step === 1 && (
                 <div className="animate-[fadeIn_.25s_ease] space-y-5">
                   <h2 className="text-2xl font-bold">Datos de la clase</h2>
-                  <SelectField label="Modalidad de la clase" value={form.modality} onChange={(e) => update('modality', e.target.value as EvaluationFormData['modality'])}>
-                    {renderOptions(catalogs.modalities, 'Selecciona una modalidad')}
-                  </SelectField>
+                  <SearchableSelectField
+                    label="Modalidad de la clase"
+                    value={form.modality}
+                    options={catalogs.modalities}
+                    placeholder="Buscar modalidad"
+                    error={errors.modality}
+                    onChange={(value) => update('modality', value as EvaluationFormData['modality'])}
+                  />
                   {catalogError && <p className="rounded-lg bg-rose-50 p-3 font-medium text-rose-700">{catalogError}</p>}
                   <div className="grid gap-4 md:grid-cols-2">
-                    <SelectField label="Programa" value={form.classProgram} error={errors.classProgram} onChange={(e) => update('classProgram', e.target.value)}>
-                      {renderOptions(catalogs.programs, 'Selecciona un programa')}
-                    </SelectField>
-                    <SelectField label="Semestre" value={form.classSemester} error={errors.classSemester} onChange={(e) => update('classSemester', e.target.value)}>
-                      {renderOptions(catalogs.semesters, 'Selecciona un semestre')}
-                    </SelectField>
-                    <SelectField label="Materia/asignatura" value={form.subject} error={errors.subject} onChange={(e) => update('subject', e.target.value)}>
-                      {renderOptions(catalogs.subjects, form.classProgram && form.classSemester ? 'Selecciona una materia' : 'Primero selecciona programa y semestre')}
-                    </SelectField>
+                    <SearchableSelectField
+                      label="Programa"
+                      value={form.classProgram}
+                      options={catalogs.programs}
+                      placeholder="Buscar programa"
+                      error={errors.classProgram}
+                      onChange={(value) => update('classProgram', value)}
+                    />
+                    <SearchableSelectField
+                      label="Semestre"
+                      value={form.classSemester}
+                      options={catalogs.semesters}
+                      placeholder="Buscar semestre"
+                      error={errors.classSemester}
+                      onChange={(value) => update('classSemester', value)}
+                    />
+                    <SearchableSelectField
+                      label="Materia/asignatura"
+                      value={form.subject}
+                      options={catalogs.subjects}
+                      placeholder={form.classProgram && form.classSemester ? 'Buscar materia' : 'Primero selecciona programa y semestre'}
+                      disabled={!form.classProgram || !form.classSemester}
+                      error={errors.subject}
+                      onChange={(value) => update('subject', value)}
+                    />
                     <InputField label="Hora inicio" type="time" value={form.classStartTime} error={errors.classStartTime} onChange={(e) => update('classStartTime', e.target.value)} />
                     <InputField label="Hora fin" type="time" value={form.classEndTime} error={errors.classEndTime} onChange={(e) => update('classEndTime', e.target.value)} />
                     <InputField label="Fecha de clase" type="date" value={form.classDate} error={errors.classDate} onChange={(e) => update('classDate', e.target.value)} />
-                    <SelectField label="Nombre del profesor" value={form.professorName} error={errors.professorName} onChange={(e) => update('professorName', e.target.value)}>
-                      {renderOptions(catalogs.professors, 'Selecciona un profesor')}
-                    </SelectField>
-                    {form.modality !== 'Virtual' && (
-                      <SelectField label="Sede" value={form.campusOrRoom} onChange={(e) => update('campusOrRoom', e.target.value)}>
-                        {renderOptions(catalogs.campuses, 'Selecciona una sede')}
-                      </SelectField>
+                    <SearchableSelectField
+                      label="Nombre del profesor"
+                      value={form.professorName}
+                      options={catalogs.professors}
+                      placeholder="Buscar profesor"
+                      error={errors.professorName}
+                      onChange={(value) => update('professorName', value)}
+                    />
+                    {form.modality && form.modality !== 'Virtual' && (
+                      <SearchableSelectField
+                        label="Sede"
+                        value={form.campusOrRoom}
+                        options={catalogs.campuses}
+                        placeholder="Buscar sede"
+                        onChange={(value) => update('campusOrRoom', value)}
+                      />
                     )}
                   </div>
                   {availabilityStatus === 'checking' && (
