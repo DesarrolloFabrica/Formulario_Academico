@@ -1,0 +1,23 @@
+{
+  "name": "formulario-academico",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo universitario para recolectar evaluaciones academicas al finalizar una clase.",
+  "workspaces": [
+    "front",
+    "back"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w back\" \"npm run dev -w front\"",
+    "build": "npm run build -w back && npm run build -w front",
+    "start": "npm run start -w back",
+    "db:migrate": "npm run db:migrate -w back",
+    "lint": "npm run lint -w front && npm run lint -w back"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

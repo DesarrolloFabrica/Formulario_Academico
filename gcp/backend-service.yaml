@@ -1,0 +1,29 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: formulario-academico-api
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cloudsql-instances: PROJECT_ID:REGION:INSTANCE_NAME
+    spec:
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/formulario-academico/backend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: FRONTEND_URL
+              value: https://FRONTEND_URL
+            - name: BACKEND_URL
+              value: https://BACKEND_URL
+            - name: DATABASE_URL
+              value: postgresql://USER:PASSWORD@/DATABASE?host=/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME
+            - name: GOOGLE_CLIENT_ID
+              value: GOOGLE_CLIENT_ID
+            - name: JWT_SECRET
+              value: CHANGE_WITH_SECRET_MANAGER
