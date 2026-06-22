@@ -45,8 +45,17 @@ export function validateStep(step: number, data: EvaluationFormData) {
     requireMinLength('bestPartComment', 'Lo mejor de la clase', 5);
     requireMinLength('improvementComment', 'Lo que podria mejorar', 5);
     requireMinLength('generalComment', 'El comentario general', 5);
+    requireField('wouldRecommend', 'La recomendacion');
     requireMinLength('recommendationReason', 'La razon de recomendacion', 5);
   }
 
   return errors;
+}
+
+export function validateForm(data: EvaluationFormData) {
+  return {
+    ...validateStep(0, data),
+    ...validateStep(1, data),
+    ...validateStep(3, data)
+  };
 }

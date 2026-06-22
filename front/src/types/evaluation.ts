@@ -35,7 +35,7 @@ export type EvaluationFormData = {
   bestPartComment: string;
   improvementComment: string;
   generalComment: string;
-  wouldRecommend: boolean;
+  wouldRecommend: '' | boolean;
   recommendationReason: string;
 };
 

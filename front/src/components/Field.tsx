@@ -106,7 +106,16 @@ export function SearchableSelectField({
     onChange(option.name);
     setQuery(option.name);
     setOpen(false);
-    inputRef.current?.blur();
+  };
+
+  const syncExactMatch = (nextQuery: string) => {
+    const exactOption = options.find((option) => normalize(option.name) === normalize(nextQuery));
+    if (exactOption) {
+      onChange(exactOption.name);
+      return;
+    }
+
+    if (!nextQuery.trim()) onChange('');
   };
 
   return (
@@ -130,9 +139,20 @@ export function SearchableSelectField({
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const nextQuery = event.target.value;
+            setQuery(nextQuery);
             setOpen(true);
-            if (!event.target.value) onChange('');
+            syncExactMatch(nextQuery);
+          }}
+          onBlur={() => {
+            const exactOption = options.find((option) => normalize(option.name) === normalize(query));
+            if (exactOption) {
+              setQuery(exactOption.name);
+              onChange(exactOption.name);
+              return;
+            }
+
+            setQuery(value);
           }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {

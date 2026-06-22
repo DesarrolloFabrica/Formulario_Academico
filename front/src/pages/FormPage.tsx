@@ -1,11 +1,11 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, LogOut, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { InputField, SearchableSelectField, SelectField, TextAreaField } from '../components/Field';
+import { InputField, SearchableSelectField, TextAreaField } from '../components/Field';
 import { ProgressSteps } from '../components/ProgressSteps';
 import { Rating } from '../components/Rating';
 import { checkEvaluationAvailability, createEvaluation, getCatalogs } from '../services/api';
 import type { Catalogs, EvaluationFormData, User } from '../types/evaluation';
-import { validateStep } from '../utils/validation';
+import { validateForm, validateStep } from '../utils/validation';
 
 const emptyForm = (user: User): EvaluationFormData => ({
   fullName: user.name,
@@ -35,7 +35,7 @@ const emptyForm = (user: User): EvaluationFormData => ({
   bestPartComment: '',
   improvementComment: '',
   generalComment: '',
-  wouldRecommend: true,
+  wouldRecommend: '',
   recommendationReason: ''
 });
 
@@ -51,6 +51,11 @@ const emptyCatalogs: Catalogs = {
   campuses: [],
   shifts: []
 };
+
+const recommendationOptions = [
+  { id: 'true', name: 'Si' },
+  { id: 'false', name: 'No' }
+];
 
 type Props = {
   user: User;
@@ -68,6 +73,19 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
   const [catalogError, setCatalogError] = useState('');
   const [availabilityStatus, setAvailabilityStatus] = useState<'idle' | 'checking' | 'available' | 'duplicate'>('idle');
   const [availabilityMessage, setAvailabilityMessage] = useState('');
+
+  useEffect(() => {
+    setForm((current) => {
+      const isUntouchedRecommendation =
+        current.wouldRecommend === true &&
+        !current.bestPartComment.trim() &&
+        !current.improvementComment.trim() &&
+        !current.generalComment.trim() &&
+        !current.recommendationReason.trim();
+
+      return isUntouchedRecommendation ? { ...current, wouldRecommend: '' } : current;
+    });
+  }, []);
 
   useEffect(() => {
     getCatalogs()
@@ -146,14 +164,33 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
 
   const submit = async () => {
     setApiError('');
-    const stepErrors = validateStep(3, form);
-    setErrors(stepErrors);
-    if (Object.keys(stepErrors).length > 0) return;
+    const formErrors = validateForm(form);
+    setErrors(formErrors);
+    if (Object.keys(formErrors).length > 0) {
+      if (formErrors.fullName || formErrors.email || formErrors.documentNumber || formErrors.shift) {
+        setStep(0);
+      } else if (
+        formErrors.classProgram ||
+        formErrors.classSemester ||
+        formErrors.subject ||
+        formErrors.classStartTime ||
+        formErrors.classEndTime ||
+        formErrors.classDate ||
+        formErrors.professorName ||
+        formErrors.modality
+      ) {
+        setStep(1);
+      } else {
+        setStep(3);
+      }
+      return;
+    }
 
     setStatus('sending');
     try {
       await createEvaluation({
         ...form,
+        wouldRecommend: form.wouldRecommend === true,
         academicProgram: form.classProgram,
         semester: form.classSemester,
         classSchedule: `${form.classStartTime} - ${form.classEndTime}`
@@ -314,10 +351,14 @@ export function FormPage({ user, onLogout, onAdmin }: Props) {
                   <TextAreaField label="Que podria mejorar" value={form.improvementComment} error={errors.improvementComment} onChange={(e) => update('improvementComment', e.target.value)} />
                   <TextAreaField label="Comentario general" value={form.generalComment} error={errors.generalComment} onChange={(e) => update('generalComment', e.target.value)} />
                   <div className="grid gap-4 md:grid-cols-[220px_1fr]">
-                    <SelectField label="Recomendarias esta clase o profesor" value={String(form.wouldRecommend)} onChange={(e) => update('wouldRecommend', e.target.value === 'true')}>
-                      <option value="true">Si</option>
-                      <option value="false">No</option>
-                    </SelectField>
+                    <SearchableSelectField
+                      label="Recomendarias esta clase o profesor"
+                      value={form.wouldRecommend === '' ? '' : form.wouldRecommend ? 'Si' : 'No'}
+                      options={recommendationOptions}
+                      placeholder="Buscar respuesta"
+                      error={errors.wouldRecommend}
+                      onChange={(value) => update('wouldRecommend', value ? value !== 'No' : '')}
+                    />
                     <TextAreaField label="Por que" value={form.recommendationReason} error={errors.recommendationReason} onChange={(e) => update('recommendationReason', e.target.value)} />
                   </div>
                   {apiError && <p className="rounded-lg bg-rose-50 p-3 font-medium text-rose-700">{apiError}</p>}
